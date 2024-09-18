@@ -1,0 +1,73 @@
+#bulletins-container .title {
+    margin-top: 20px !important;
+}
+
+.tns-outer {
+    margin-bottom: 50px !important;
+}
+
+.tnscarousel {
+    height: 353px;
+}
+
+.tns-controls {
+    margin-bottom: 8px;
+}
+
+.tns-controls > button {
+    border-radius: 4px;
+    padding: 4px 8px 2px 8px;
+}
+
+.tns-controls > button[data-controls="next"] {
+    float: right;
+}
+
+.tns-inner {
+    height: 600px !important;
+}
+
+.carousel-card {
+    margin: 0 auto;
+    background-color: whitesmoke;
+    color: black;
+    height: 450px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.carousel-card:hover {
+    box-shadow: 0 0px 6px rgba(0,0,0,0.25), 0 3px 10px rgba(0,0,0,0.22);
+}
+
+.carousel-card .carousel-data {
+    padding: 6px 0px 0px 9px;
+    display: block;
+}
+
+.carousel-card .carousel-data-title {
+    font-weight: bold;
+    overflow: hidden;
+    font-size: 0.9em;
+    margin-top: 10px;
+}
+
+.carousel-card .carousel-data-author {
+    margin-bottom: 9px;
+}
+
+.carousel-card .carousel-data-format span {
+    margin-left: 10px;
+}
+
+.carousel-card .carousel-image {
+    overflow: hidden;
+}
+
+.carousel-card .carousel-image img {
+    max-width: 100%;
+    height: 350px;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;    
+}

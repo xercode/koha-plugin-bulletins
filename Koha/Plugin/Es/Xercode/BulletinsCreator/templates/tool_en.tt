@@ -1,0 +1,935 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Dumper %]
+[% USE Branches %] 
+[% USE AuthorisedValues %]
+
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>Bulletins Creator Plugin</title> 
+
+[% INCLUDE 'doc-head-close.inc' %]
+<link rel='stylesheet' type='text/css' href='[%PLUGIN_PATH%]/css/common.css'>
+<link rel='stylesheet' type='text/css' href='[%PLUGIN_PATH%]/css/jquery.dataTables.min.css'>
+
+<style>
+#selectlibrary-fieldset {
+    padding-top: 15px !important;
+    padding-left: 20px !important;
+}
+#selectlibrary-fieldset legend {
+    margin-bottom: 0px !important;
+    font-size: 13px;
+}
+#selectlibrary-div label{
+    font-weight: bold;
+    font-size: 12px;
+}
+#selectlibrary-div{
+    font-size: 13px;
+}
+#div-library-groups {
+    border: 1px solid transparent;
+    margin-top: 12px;
+    margin-left: 15px;
+}
+#newbulletin-container {
+    margin-top: 25px;
+    margin-bottom: 20px;
+}
+.error_bulletins {
+    margin-bottom: 30px !important;
+}
+#addcarousel fieldset.rows label{
+    width: 20rem;
+}
+</style>
+
+<body>
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl?method=tool">Plugins</a> &rsaquo; 
+[% IF op == 'list' %]
+    Bulletins Creator
+[% ELSE %]
+    <a href="/cgi-bin/koha/plugins/run.pl?branchfilter=[%branchcode%]&class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool">Bulletins Creator</a> &rsaquo;
+    [% IF ( op == 'add_form' || op == 'edit_form' || op == 'duplicate_form' ) %]
+        [% IF idBulletin.defined %]
+            Edit bulletin [% idBulletin %]
+        [% ELSE %]
+            New bulletin
+        [% END %]
+    [% END %]
+[% END %]
+</div>
+
+<div class="main container-fluid">
+    <div class="row">
+        <div class="col-md-10 col-sm-push-1">
+            <main>
+                [% IF op == 'list' %]
+                    <div>
+                        <fieldset id="selectlibrary-fieldset">
+                            <legend>Search bulletins</legend>
+                            <div id="selectlibrary-div">
+                                <form method="post" id="selectlibrary">
+                                    <div id="div-library-groups">
+                                        <label for="branchloop">Libraries</label>
+                                        <select name="branchfilter" id="branchfilter_library" style="width:40em;">
+                                            [% IF ( CAN_user_superlibrarian ) %]
+                                                <option value=""> -- -- </option>
+                                                [% IF ( branchcode == '*') %]
+                                                    <option value="*" selected="selected">Bulletins for all libraries</option>
+                                                [% ELSE %]
+                                                    <option value="*">Bulletins for all libraries</option>
+                                                [% END %]
+                                                [% PROCESS options_for_libraries libraries => branches %]
+                                            [% ELSE %]
+                                                <option value="[% Branches.GetLoggedInBranchcode() %]">[% Branches.GetName(Branches.GetLoggedInBranchcode()) | html %]</option>
+                                            [% END %]
+                                        </select>
+                                    </div>
+                                    <input type="hidden" name="class" value="[% CLASS %]"/>
+                                    <input type="hidden" name="method" value="[% METHOD %]"/>
+                                </form>
+                            </div>
+                        </fieldset>
+                        <div id="newbulletin-container">
+                            <span>Click here to create a new bulletin</span>
+                            <a class="btn btn-default btn-sm" id="newbranch" href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=add_form&branchfilter=[% branchcode %]"><i class="fa fa-plus"></i> New bulletin</a>
+                        </div>
+                    </div>
+                    <h1>Bulletins</h1>
+                    <div>
+                        [% IF (error == 'topissuesexists') %]
+                            <div class="dialog alert error_bulletins">There is one bulletin of type Most Issued for [% IF branchcode == '*' %] all libraries[% ELSE %][% Branches.GetName(branchcode)| html %][% END %]. Only one of this type can be created.</div>
+                        [% END %]
+                        
+                        [% IF (error == 'lastbibliosexists') %]
+                            <div class="dialog alert error_bulletins">There is one bulletin of type Last Biblios for [% IF branchcode == '*' %] all libraries[% ELSE %][% Branches.GetName(branchcode)| html %][% END %]. Only one of this type can be created.</div>
+                        [% END %]
+
+                        [% IF (error == 'searchbulletinlimit') %]
+                            <div class="dialog alert error_bulletins">There can only be [% searchBulletinsPerLibrary %] bulletins of type Search for [% IF branchcode == '*' %] all libraries[% ELSE %][% Branches.GetName(branchcode)| html %][% END %]</div>
+                        [% END %]
+
+                        [% IF (error == 'staticbulletinlimit') %]
+                            <div class="dialog alert error_bulletins">There can only be [% staticBulletinsPerLibrary %] bulletins of type Static for [% IF branchcode == '*' %] all libraries[% ELSE %][% Branches.GetName(branchcode)| html %][% END %]</div>
+                        [% END %]
+
+                        [% IF loop %]
+                            <table class="table table-responsive">
+                                <thead>
+                                    <tr>
+                                        <th>&nbsp;</th>
+                                        <th>ID</th>
+                                        <th>Name</th>
+                                        <th>Type</th>
+                                        <th>Elements</th>
+                                        <th>Status</th>
+                                        <th>Branch</th>
+                                        <th>&nbsp;</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH loo IN loop %]
+                                    <tr>
+                                        <td>
+                                            [% IF ( loo.orderUp ) %]
+                                                <a href="[% loo.orderUp %]"> <i class="fa fa-arrow-up colorize"></i></a>
+                                            [% END %]
+                                            [% IF ( loo.orderDown ) %]
+                                                <a href="[% loo.orderDown %]"> <i class="fa fa-arrow-down colorize"></i></a>
+                                            [% END %]
+                                        </td>
+                                        <td>[% loo.idBulletin %]</td>
+                                        <td>[% loo.name %]</td>
+                                        <td>
+                                            [% IF (loo.type == 'TOPISSUES') %]Most issued[% END %]
+                                            [% IF (loo.type == 'LASTBIBLIOS') %]Last biblios[% END %]
+                                            [% IF (loo.type == 'SEARCH') %]Custom search[% END %]
+                                            [% IF (loo.type == 'LIST') %]Static[% END %]
+                                        </td>
+                                        <td>
+                                            [% loo.elements %]
+                                        </td>
+                                        <td>
+                                            [% IF loo.enabled %]
+                                                <i class="fa fa-thumbs-up onlist green"></i>
+                                            [% ELSE %]
+                                                <i class="fa fa-thumbs-down onlist red"></i>
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            [% IF (loo.branchcode == '*') %]
+                                                All libraries 
+                                            [% ELSE %] 
+                                                [% Branches.GetName( loo.branchcode ) | html %] 
+                                            [% END %]
+                                        </td>
+                                        <td>
+                                            <div class="dropdown">
+                                                <a class="btn btn-default btn-xs dropdown-toggle" id="bulletinactions[% loo.idBulletin %]" role="button" data-toggle="dropdown" href="#">
+                                                    Actions <b class="caret"></b>
+                                                </a>
+                                                <ul class="dropdown-menu pull-right" role="menu" aria-labelledby="bulletinactions[% loo.idBulletin %]">
+                                                    <li>
+                                                        [% IF (loo.enabled) %]
+                                                            <a href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=disable&amp;idBulletin=[% loo.idBulletin %]"><i class="fa fa-thumbs-down"></i> Disable</a>
+                                                        [% ELSE %]
+                                                            <a href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=enable&amp;idBulletin=[% loo.idBulletin %]"><i class="fa fa-thumbs-up"></i> Enable</a>
+                                                        [% END %]
+                                                    </li>
+                                                    [% UNLESS (loo.type == 'LASTBIBLIOS' AND loo.value == 'biblio' AND !CAN_user_superlibrarian ) %] <!--Solo los superadmin pueden editar boletines de novedades hechos a partir del sql de registros-->
+                                                        <li><a href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=edit_form&amp;idBulletin=[% loo.idBulletin %]"><i class="fa fa-pencil"></i> Edit</a></li>
+                                                    [% END %]
+                                                    [% IF (loo.elements) %]
+                                                    <li><a href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=export&amp;idBulletin=[% loo.idBulletin %]"><i class="fa fa-download"></i> Export CSV</a></li>
+                                                    [% END %]                                      
+                                                    [% IF (loo.type == 'SEARCH' || loo.type == 'LIST' ) %]
+                                                    <li><a href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=duplicate_form&amp;idBulletin=[% loo.idBulletin %]"><i class="fa fa-copy"></i> Duplicate</a></li>
+                                                    [% END %]
+                                                    <li><a class="confirmdelete" title="Delete this bulletin" href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=delete&amp;idBulletin=[% loo.idBulletin | html %]"><i class="fa fa-trash"></i> Delete</a></li>
+                                                </ul>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+                        [% ELSE %]
+                            <div class="dialog message" role="alert">There are no bulletins created. Click on <a class="btn btn-default btn-sm" id="newbranch" href="run.pl?class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool&op=add_form&branchfilter=[% branchcode %]"><i class="fa fa-plus"></i> New bulletin</a> to create your first one.</div>
+                        [% END %]
+                    </div>
+                
+                [% ELSIF ( op == 'add_form' || op == 'edit_form' || op == 'duplicate_form' ) %]
+                    <h1>[% IF ( op == 'add_form' || op == 'duplicate_form') %]New bulletin[% ELSE %]Edit bulletin [% idBulletin %][% END %]</h1>
+
+                    [% IF (error == 'toomanyelements') %]
+                        <div class="dialog alert">
+                            You have tried to put in the bulletin more elements than allowed by the number of Items per Bulletin, change the option in the bulletin or add less elements.
+                        </div>
+                    [% END %]
+
+                    [% IF (error == 'hiddenelements') %]
+                        <div class="dialog alert">
+                            The following items couldn't be added because they are hidden in the OPAC: [% hiddenelements %]
+                        </div>
+                    [% END %]
+
+                    <div class="dialog message">
+                        <p>Bulletins are filled by a programmed task, except if it is static type, as in that case you will choose its content by adding elements from a list or your cart.</p> 
+                        <p>If after a while, the bulletin is stil empty, contact your administrator.</p>
+                    </div>
+
+                    <form name="addcarousel" id="addcarousel" method="post">
+                        <fieldset class="rows">
+                            <legend>Name</legend>
+                            <ol>
+                            [% FOREACH lang_list %]
+                                <li>
+                                    [% IF ( op == 'edit_form' || op == 'duplicate_form' ) %]
+                                        [% FOREACH names %]
+                                            [% IF ( language_ == language.language ) %]
+                                                <label  class="required">[% language.language %]</label>
+                                                <input type="text" id="name_[% language.language %]" name="name_[% language.language %]" value="[% name %]" size="50" class="required" required="required" [% IF ( readonly ) %] readonly="readonly" [% END %]/>
+                                                <span class="required">Required</span>
+                                            [% END %]
+                                        [% END %]
+                                    [% ELSE %]
+                                        <label  class="required">[% language.language %]</label>
+                                        <input type="text" id="name_[% language.language %]" name="name_[% language.language %]" value="[% name %]" size="50" class="required" required="required" />
+                                        <span class="required">Required</span>
+                                    [% END %]
+                                </li>
+                            [% END %]
+                            </ol>
+                        </fieldset>
+
+                        <fieldset class="rows">
+                            <legend>Description</legend>
+                            <ol>
+                                [% FOREACH lang_list %]
+                                    <li>
+                                        [% IF ( op == 'edit_form' || op == 'duplicate_form' ) %]
+                                            [% FOREACH descriptions %]
+                                                [% IF ( language_ == language.language ) %]
+                                                    <label  class="required">[% language.language %]</label>
+                                                    <input type="text" id="description_[% language.language %]" name="description_[% language.language %]" value="[% description %]" size="50" class="required" required="required" [% IF ( readonly ) %] readonly="readonly" [% END %] />
+                                                    <span class="required">Required</span>
+                                                [% END %]
+                                            [% END %]
+                                        [% ELSE %]
+                                            <label  class="required">[% language.language %]</label>
+                                            <input type="text" id="description_[% language.language %]" name="description_[% language.language %]" value="[% description %]" size="50" class="required" required="required" />
+                                            <span class="required">Required</span>
+                                        [% END %]
+                                    </li>
+                                [% END %]
+                            </ol>
+                        </fieldset>
+
+                        <fieldset class="rows">
+                            <legend>Options</legend>
+                            <ol>
+                                <li>
+                                    <label class="required">Branch</label>
+                                    <select name="branchcode" id="branchloop" required="required">
+                                        [% IF ( CAN_user_superlibrarian ) %]
+                                            <option value=""> -- none -- </option>
+                                            <option value="*" [% IF branchcode == '*' %]selected="selected"[% END %] >All libraries</option>
+                                            [% PROCESS options_for_libraries libraries => Branches.all( unfiltered => 1, selected => branchcode ) %]
+                                        [% ELSE %]
+                                            [% PROCESS options_for_libraries libraries => Branches.all( selected => branchcode || Branches.GetLoggedInBranchcode(), unfiltered => 1, only_partners => Branches.GetLoggedInBranchcode() ) %]
+                                        [% END %]
+                                    </select>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label class="required">Type</label>
+                                    <select name="type" onChange="load_value_options();" id="type" required="required">
+                                        <option value="">Select one of these options</option>
+                                        <option value="TOPISSUES" [% IF (type == 'TOPISSUES') %]selected="selected"[% END %]>Most issued</option>
+                                        <option value="LASTBIBLIOS" [% IF (type == 'LASTBIBLIOS') %]selected="selected"[% END %]>Last biblios</option>
+                                        <option value="SEARCH" [% IF (type == 'SEARCH') %]selected="selected"[% END %]>Custom search</option>
+                                        <option value="LIST" [% IF (type == 'LIST') %]selected="selected"[% END %]>Static</option>
+                                    </select>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label class="required">Number of elements in carousel</label>
+                                    <select id="elementsInCarousel" name="elementsInCarousel" required="required">
+                                        <option value="">Select one of these options</option>
+                                        [% FOREACH number IN carouselnumbers %]
+                                            <option value="[% number %]" [% IF number == elementsInCarousel %] selected="selected" [% END %]>[% number | html %]</option>
+                                        [% END %]
+                                    </select>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li>
+                                    <label  class="required">Number of elements in bulletin</label>
+                                    <select id="elementsInBulletin" name="elementsInBulletin" required="required">
+                                        <option value="">Select one of these options</option>
+                                        [% FOREACH number IN bulletinnumbers %]
+                                            <option value="[% number %]" [% IF number == elementsInBulletin %] selected="selected" [% END %]>[% number | html %]</option>
+                                        [% END %]
+                                    </select>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li class="hidden" id="type_TOPISSUES_LASTBIBLIOS">
+                                    <label>Days</label>
+                                    <input type="number" name="days" value="[% days %]" />
+                                    <span class="hint">Specify the range of days you want to check. For example 30 or 31 for last month. If left empty it will check the last year.</span>
+                                </li>
+                                <li>
+                                    <label  class="required">Default view</label>
+                                    <select id="defaultView" name="defaultView" required="required">
+                                        <option value="">Select one of these options</option>
+                                        <option value="grid" [% IF defaultView == 'grid' %] selected="selected" [% END %]>Grid</option>
+                                        <option value="list" [% IF defaultView == 'list' %] selected="selected" [% END %]>List</option>
+                                    </select>
+                                    <span class="required">Required</span>
+                                </li>
+                                <li class="itemInfo [% IF branchcode == '*' %] hidden [% END %]">
+                                    <label for="itemInfo">See item data</label>
+                                    [% IF ( itemInfo ) %]
+                                        <input type="checkbox" id="itemInfo" name="itemInfo" checked="checked" value="1" />
+                                    [% ELSE %]
+                                        <input type="checkbox" id="itemInfo" name="itemInfo" value="1" />
+                                    [% END %]
+                                </li>
+                                <li>
+                                    <label>Order by</label>
+                                    <select id="orderByField" name="orderByField">
+                                        <option value="">Default</option>
+                                        <option value="title" [% IF orderByField == 'title' %] selected="selected" [% END %]>Title</option>
+                                        <option value="author" [% IF orderByField == 'author' %] selected="selected" [% END %]>Author</option>
+                                        <option value="publicationyear" [% IF orderByField == 'publicationyear' %] selected="selected" [% END %]>Publication year</option>
+                                    </select>
+                                    <select id="orderByDirection" name="orderByDirection" [% UNLESS orderByField %]class="hidden"[% END %]>
+                                        <option value="asc" [% IF orderByDirection == 'asc' %] selected="selected" [% END %]>Ascending</option>
+                                        <option value="desc" [% IF orderByDirection == 'desc' %] selected="selected" [% END %]>Descending</option>
+                                    </select>
+                                </li>
+                                <li class="hidden" id="type_SEARCH">
+                                    <label  class="required">Type the URL of the search (add protocol http or https)</label>
+                                    <input type="url" id="value" name="value" value="[% value %]" size="100" class="required" required="required" disabled="disabled" />
+                                </li>
+                                <div class="hidden" id="type_LASTBIBLIOS">
+                                    <li>
+                                        <label class="required">Choose type of SQL</label>
+                                        <select name="value" id="value" class="required" required="required" disabled="disabled">
+                                            <option value=""></option>
+                                            <option value="item" [% IF value == 'item' %]selected="selected"[% END %]>Item</option>
+                                            [% IF ( CAN_user_superlibrarian ) %]<option value="biblio" [% IF value == 'biblio' %]selected="selected"[% END %]>Biblio</option>
+                                            [% END %]
+                                        </select>
+                                        <span class="required">Required</span>
+                                    </li>
+                                </div>
+                                [% UNLESS (idBulletin) %]
+                                <div class="hidden" id="type_LIST">
+                                    <li>
+                                        <label>Select the list</label>
+                                        <select name="shelfnumber" id="shelfnumber">
+                                            <option value="0"></option>
+                                            [% FOREACH shelf IN shelflist %]
+                                                <option value="[% shelf.shelfnumber %]">
+                                                    [% shelf.shelfname | html%]
+                                                </option>
+                                            [% END %]
+                                        </select>
+                                    </li>
+                                    <li>
+                                        <label for="cartsource">Cart</label>
+                                        <input type="checkbox" id="cartsource" name="cartsource" value="1" />
+                                        <span id="hintCartEmpty" class="hint hidden">Your cart is empty. Add elements to the cart and check this option to add elements from the cart too</span>
+                                        <span id="hintCartOk" class="hint hidden">Check this option to add elements from the cart too</span>
+                                        <input type="hidden" name="cartItems" id="cartItems" />
+                                    </li>
+                                </div>
+                                [% END %]
+                            </ol>
+                        </fieldset>
+                        <fieldset class="action">
+                            <button id="submit" type="submit" name="submit" class="btn btn-default"><i class="fa fa-save"></i> [% IF ( op == 'add_form' || op == 'duplicate_form' ) %]Save[% ELSE %]Update[% END %]</button>
+                            <a href="/cgi-bin/koha/plugins/run.pl?branchfilter=[%branchcode%]&class=Koha%3A%3APlugin%3A%3AEs%3A%3AXercode%3A%3ABulletinsCreator&method=tool" class="cancel btn btn-default"><i class="fa fa-times"></i> Cancel</a>
+                            <input type="hidden" name="class" value="[% CLASS %]"/>
+                            <input type="hidden" name="method" value="[% METHOD %]"/>
+                        </fieldset>
+                        [% IF ( idBulletin ) %]
+                            <input type="hidden" name="op" value="update" />
+                            <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                        [% ELSE %]
+                            <input type="hidden" name="op" value="save" />
+                        [% END %]
+                    </form>
+                    <hr/>
+                    
+                    <!-- Edit a LIST carousel -->
+                    [% IF type == 'LIST' && op == 'edit_form' %]
+                        <h1>You can add elements to the bulletin from a list or from your cart</h1>
+
+                        <form name="addelementslist" method="get">
+                            <div id="errorNoneSelected" class="dialog message hidden" role="alert">You must select an option to add elements, a list or the cart</div>
+                            <fieldset class="rows">
+                                <ol>
+                                    <li>
+                                        <label>Select the list</label>
+                                        <select name="shelfnumber" id="shelfnumber">
+                                            <option value="0"></option>
+                                            [% FOREACH shelf IN shelflist %]
+                                                <option value="[% shelf.shelfnumber %]">
+                                                    [% shelf.shelfname | html%]
+                                                </option>
+                                            [% END %]
+                                        </select>
+                                    </li>
+                                    <li>
+                                        <label for="cartsource">Cart</label>
+                                        <input type="checkbox" id="cartsource" name="cartsource" value="1" />
+                                        <span id="hintCartEmpty" class="hint hidden">Your cart is empty. Add elements to the cart and check this option to add elements from the cart too</span>
+                                        <span id="hintCartOk" class="hint hidden">Check this option to add elements from the cart too</span>
+                                    </li>
+                                </ol>
+                            </fieldset>
+                            
+                            <fieldset class="action">
+                                <input type="submit" value="Add elements to the bulletin" />
+                            </fieldset>
+                            <input type="hidden" name="class" value="[% CLASS %]"/>
+                            <input type="hidden" name="method" value="[% METHOD %]"/>
+                            <input type="hidden" name="cartItems" id="cartItems" />
+                            <input type="hidden" name="op" value="addItems" />
+                            <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                        </form>
+
+                        <h1>Elements in the bulletin</h1>
+                        <div>
+                            <form name="deleteelements" method="post">
+                            <table id="bulletin-elements-table">
+                                <thead>
+                                    <tr>
+                                        <th>Biblionumber</th>
+                                        <th>Title</th>
+                                        <th>Author</th>
+                                        <th>Format</th>
+                                        <th>Language</th>
+                                        <th>Publication year</th>
+                                        <th class="NoSort">Hidden in OPAC</th>
+                                        <th class="NoSort">Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH biblio IN biblios_list %]
+                                    <tr>
+                                        <td>[% biblio.biblionumber | html %]</td>
+                                        <td>[% biblio.title | html %]</td>
+                                        <td>[% biblio.author | html %]</td>
+                                        <td>[% AuthorisedValues.GetByCode( 'FORMAT', biblio.format ) | html %]</td>
+                                        <td>[% AuthorisedValues.GetByCode( 'LANG', biblio.language ) | html %]</td>
+                                        <td>[% biblio.publicationyear | html %]</td>
+                                        <td>
+                                        [% IF biblio.hiddenInOpac %]
+                                            <i class="fa fa-exclamation-triangle fa-lg" style="color:gold" title="It won't appear in the OPAC"/> Yes
+                                        [% ELSE %]
+                                            No
+                                        [% END %]
+                                        </td>
+                                        <td><input name="delete" id="[% biblio.biblionumber %]" type="checkbox" value="[% biblio.biblionumber %]" /></td>
+                                    </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+
+                                [% IF (biblios_list) %] <!--Solo si el boletín tiene elementos-->
+                                    <fieldset class="action">
+                                        <input type="submit" value="Remove elements" />
+                                    </fieldset>
+                                    <input type="hidden" name="op" value="removeItems" />
+                                [% END %]
+                                <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                                <input type="hidden" name="class" value="[% CLASS %]"/>
+                                <input type="hidden" name="method" value="[% METHOD %]"/>
+                            </form>
+                        </div>
+                    [% END %] <!-- END type LIST -->
+                    
+                    <!-- Edit a LAST BIBLIOS carousel -->
+                    [% IF type == 'LASTBIBLIOS' %]
+
+                        [% IF (biblios_list) %] <!--Solo si el boletín tiene elementos-->
+                            <h1>You can suppress items by applying filters</h1>
+                            <form name="applyfilters" method="post">
+                                <fieldset class="rows">
+                                    <ol>
+                                        <li>
+                                            <label>Choose filter:</label>
+                                            <select name="itemfilters" id="itemfilters">
+                                                <option value=""></option>
+                                                <option value="itype">Item type</option>
+                                                <option value="ccode">Collection</option>
+                                            </select>
+                                        </li>
+                                        <li id="itype_filter" class="hidden">
+                                            <label>Item type:</label>
+                                            <select name="itype" id="itype">
+                                                [% FOREACH itemtype IN itemtypes %]
+                                                    <option value="[% itemtype.itemtype | html %]">[% itemtype.description | html %]</option>
+                                                [% END %]
+                                            </select>
+                                        </li>
+                                        <li id="ccode_filter" class="hidden">
+                                            <label>Collection:</label>
+                                            <select name="ccode" id="acq_source">
+                                                [% FOREACH ccode IN ccodes %]
+                                                    <option value="[% ccode.authorised_value | html %]">[% ccode.lib | html %]</option>
+                                                [% END %]
+                                            </select>
+                                        </li>
+                                    </ol>
+                                </fieldset>
+
+                                <fieldset class="action">
+                                    <input type="submit" value="Apply filter" />
+                                </fieldset>
+
+                                <input type="hidden" name="op" value="applyFilter" />
+                                <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                                <input type="hidden" name="filter" value='[% filter %]' />
+                                <input type="hidden" name="class" value="[% CLASS %]"/>
+                                <input type="hidden" name="method" value="[% METHOD %]"/>
+                            </form>
+
+                            [% IF (applied_filters) %] <!--Filtros aplicados al boletín-->
+                            <div>
+                                <h2>Applied filters</h2>
+                                <form name="removefilters" method="post">
+
+                                    <table id="filters-applied">
+                                        <thead>
+                                            <tr>
+                                                <th>Filter</th>
+                                                <th>Remove</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                        [% FOREACH filter IN applied_filters %]
+                                            <tr>
+                                            [% IF filter.key == 'materials' %]
+                                                <td>Excluded material: [% AuthorisedValues.GetByCode( 'SOPORTES_EXEMPLARES', filter.value ) | html %]</td>
+                                            [% ELSIF filter.key == 'itype' %]
+                                                <td>Excluded item type: [% filter.value %]</td>
+                                            [% ELSIF filter.key == 'ccode' %]
+                                                <td>Excluded collection: [% AuthorisedValues.GetByCode( 'CCODE', filter.value ) | html %]</td>
+                                            [% ELSE %]
+                                                <td>Excluded [% filter.key %]: [% filter.value %]</td>
+                                            [% END %]
+                                                <td>
+                                                    <input name="remove" id="[% filter.key %]_[% filter.code %]" type="checkbox" value='{"[% filter.key %]":"[% filter.code %]"}' />
+                                                </td>   
+                                            </tr>
+                                        [% END %]
+                                        </tbody>
+                                    </table>
+
+                                    <fieldset class="action">
+                                        <input type="submit" value="Remove filters" />
+                                    </fieldset>
+                                    <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                                    <input type="hidden" name="op" value="removeFilters" />
+                                    <input type="hidden" name="class" value="[% CLASS %]"/>
+                                    <input type="hidden" name="method" value="[% METHOD %]"/>
+                                </form>
+                            </div>
+                            [% END %]
+                        [% END %]
+
+                        <h1>Elements in the bulletin</h1>
+                        <div>
+                            <form name="hideelements" method="post">
+                            <table id="bulletin-elements-table">
+                                <thead>
+                                    <tr>
+                                        <th>Biblionumber</th>
+                                        <th>Title</th>
+                                        <th>Author</th>
+                                        <th>Format</th>
+                                        <th>Language</th>
+                                        <th>Publication year</th>
+                                        <th class="NoSort">Hidden in OPAC</th>
+                                        <th class="NoSort">Hide</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    [% FOREACH biblio IN biblios_list %]
+                                    <tr>
+                                        <td>[% biblio.biblionumber | html %]</td>
+                                        <td>[% biblio.title | html %]</td>
+                                        <td>[% biblio.author | html %]</td>
+                                        <td>[% AuthorisedValues.GetByCode( 'FORMAT', biblio.format ) | html %]</td>
+                                        <td>[% AuthorisedValues.GetByCode( 'LANG_CODE', biblio.language ) | html %]</td>
+                                        <td>[% biblio.publicationyear | html %]</td>
+                                        <td>
+                                        [% IF biblio.hiddenInOpac %]
+                                            <i class="fa fa-exclamation-triangle fa-lg" style="color:gold" title="It won't appear in the OPAC"/> Yes
+                                        [% ELSE %]
+                                            No
+                                        [% END %]
+                                        </td>
+                                        <td>
+                                        [% IF biblio.hidden %]
+                                            <input name="hidden" id="[% biblio.biblionumber %]" type="checkbox" value="[% biblio.biblionumber %]" checked="checked" />
+                                        [% ELSE %]
+                                            <input name="hidden" id="[% biblio.biblionumber %]" type="checkbox" value="[% biblio.biblionumber %]" />
+                                        [% END %]
+                                        </td>
+                                    </tr>
+                                    [% END %]
+                                </tbody>
+                            </table>
+
+                            [% IF (biblios_list) %] <!--Solo si el boletín tiene elementos-->
+                                <fieldset class="action">
+                                    <input type="submit" value="Hide elements" />
+                                </fieldset>
+                                <input type="hidden" name="op" value="hideItems" />
+                            [% END %]
+                            <input type="hidden" name="idBulletin" value="[% idBulletin %]" />
+                            <input type="hidden" name="class" value="[% CLASS %]"/>
+                            <input type="hidden" name="method" value="[% METHOD %]"/>
+                            </form>
+                        </div>
+                    [% END %] <!-- END type LASTBIBLIOS -->
+                [% END %]
+            </main>
+        </div>
+    </div>   
+</div>
+
+
+[% MACRO jsinclude BLOCK %]
+[% Asset.js("js/tools-menu.js") | $raw %]
+[% INCLUDE 'datatables.inc' %]
+<script type="text/javascript">
+
+    $(document).ready(function() {
+
+        [% IF ( (op == 'edit_form' || op == 'duplicate_form') && type ) %]
+            $('#type_[% type %]').removeClass('hidden');
+            $('#type_[% type %] input').prop('disabled', false);
+            $('#type_[% type %] select').prop('disabled', false);
+            if (type.value == "TOPISSUES") {
+                $('#type_TOPISSUES_LASTBIBLIOS').removeClass('hidden');
+                $('#type_TOPISSUES_LASTBIBLIOS input').prop('disabled', false);
+            } else if (type.value == "LASTBIBLIOS") {
+                $('#type_TOPISSUES_LASTBIBLIOS').removeClass('hidden');
+                $('#type_TOPISSUES_LASTBIBLIOS input').prop('disabled', false);
+            }
+        [% END %]
+
+        if (!checkCart()){
+            $("form[name=addelementslist]").find('input[name=cartsource]').attr('disabled', 'disabled');
+            $('#hintCartEmpty').removeClass('hidden');
+        }else{
+            $('#hintCartOk').removeClass('hidden');
+        }
+
+        $( "form[name=addelementslist]" ).submit(function( event ) {
+            if ($( "select[name=shelfnumber]" ).val() == 0 && $(this).find('input[name=cartsource]').prop("checked") == false){
+                $('#errorNoneSelected').removeClass('hidden');
+                return false;
+            }else{
+                $('#errorNoneSelected').addClass('hidden');
+                if ($(this).find('input[name=cartsource]').prop("checked")){
+                    addFromCart();
+                }else{
+                    $('#cartItems').val("");
+                }
+            }
+        });
+
+        $( "form[name=addcarousel]" ).submit(function( event ) {
+            if ($(this).find('input[name=cartsource]').prop("checked")){
+                addFromCart();
+            }else{
+                $('#cartItems').val("");
+            }
+        });
+
+    });
+
+    function addFromCart(){
+        var nameCookie = "intranet_bib_list";
+        var valCookie = readCookie(nameCookie);
+        $('#cartItems').val(valCookie);
+    }
+    
+    function checkCart(){
+        var nameCookie = "intranet_bib_list";
+        var valCookie = readCookie(nameCookie);
+        if (valCookie == null){
+            return false;
+        }
+        return true;
+    }
+
+    $('#bulletin-elements-table').dataTable($.extend(true, {}, dataTablesDefaults, {
+        "autoWidth": false,
+        "aoColumnDefs": [
+            { "bSortable": false, "bSearchable": false, 'aTargets': [ 'NoSort' ] }
+        ],
+        "paging": false
+    } ));
+
+
+    function load_value_options(){
+        var selected_type = $("#type").val();
+        $('li[id^="type"]').addClass('hidden');
+        $('li[id^="type"] input').prop('disabled', true);
+        $('li[id^="type"] select').prop('disabled', true);
+        $('div[id^="type"]').addClass('hidden');
+        $('div[id^="type"] input').prop('disabled', true);
+        $('div[id^="type"] select').prop('disabled', true);
+        $('#type_'+selected_type).removeClass('hidden');
+        $('#type_'+selected_type+' input').prop('disabled', false);
+        $('#type_'+selected_type+' select').prop('disabled', false);
+        [% IF (op == 'edit_form' && type ) %]
+            if (selected_type != '[% type %]'){
+                $('#type_'+selected_type+' input').val('');
+            }
+        [% END %]
+
+        if (selected_type == "TOPISSUES") {
+
+            $('#type_TOPISSUES_LASTBIBLIOS').removeClass('hidden');
+            $('#type_TOPISSUES_LASTBIBLIOS input').prop('disabled', false);
+            $('#type_TOPISSUES_LASTBIBLIOS input').val('');
+
+            var json = '[% jsonMostIssues %]';
+            json = JSON.parse(json);
+
+            [% FOREACH lang_list %]
+                [% IF language.language != 'es-ES' %]
+                    $('#name_[% language.language %]').val(json.title.[% language.language %]);
+                    $('#description_[% language.language %]').val(json.description.[% language.language %]);
+                [% ELSE %]
+                    $('#name_[% language.language %]').val(json.title.es);
+                    $('#description_[% language.language %]').val(json.description.es);
+                [% END %]
+                $('#name_[% language.language %]').attr("readonly","readonly");
+                $('#description_[% language.language %]').attr("readonly","readonly");
+            [% END %]
+
+        } else if (selected_type == "LASTBIBLIOS") {
+
+            $('#type_TOPISSUES_LASTBIBLIOS').removeClass('hidden');
+            $('#type_TOPISSUES_LASTBIBLIOS input').prop('disabled', false);
+            $('#type_TOPISSUES_LASTBIBLIOS input').val('');
+
+            var json = '[% jsonLastBiblio %]';
+            json = JSON.parse(json);
+
+            [% FOREACH lang_list %]
+                [% IF language.language != 'es-ES' %]
+                    $('#name_[% language.language %]').val(json.title.[% language.language %]);
+                    $('#description_[% language.language %]').val(json.description.[% language.language %]);
+                [% ELSE %]
+                    $('#name_[% language.language %]').val(json.title.es);
+                    $('#description_[% language.language %]').val(json.description.es);
+                [% END %]
+                $('#name_[% language.language %]').attr("readonly","readonly");
+                $('#description_[% language.language %]').attr("readonly","readonly");                
+            [% END %]
+        } else {
+            [% FOREACH lang_list %]
+                $('#name_[% language.language %]').removeAttr("readonly");
+                $('#description_[% language.language %]').removeAttr("readonly");  
+            [% END %]
+        }
+
+    }
+
+    $('#selectlibrary').find("input:submit").hide();
+    $('#branchfilter').change(function() {
+        $('#selectlibrary').submit();
+    });
+
+    $('#branchfilter_library').change(function() {
+        $('#selectlibrary').submit();
+    });
+
+    $('#orderByField').change(function() {
+        if (this.value != ''){
+            $('#orderByDirection').removeClass('hidden');
+        }else{
+            $('#orderByDirection').addClass('hidden');
+        }
+    });
+
+    $('#itemfilters').change(function() {
+        var selected = $('#itemfilters').val();
+
+        if (selected == 'materials') {
+            $('#materials_filter').removeClass('hidden');
+            $('#itype_filter').addClass('hidden');
+            $('#ccode_filter').addClass('hidden');
+        } else if (selected == 'itype') {
+            $('#materials_filter').addClass('hidden');
+            $('#itype_filter').removeClass('hidden');
+            $('#ccode_filter').addClass('hidden');
+        } else if (selected == 'ccode') {
+            $('#materials_filter').addClass('hidden');
+            $('#itype_filter').addClass('hidden');
+            $('#ccode_filter').removeClass('hidden');
+        } else {
+            $('#materials_filter').addClass('hidden');
+            $('#itype_filter').addClass('hidden');
+            $('#ccode_filter').addClass('hidden');
+        }
+    });
+
+    /* Los boletines de novedades para una biblioteca usan la consulta base de items */
+    $('#branchcode').change(function() {
+        var branchcode = $('#branchcode').val();
+        var type = $('#type').val();
+
+        if(branchcode != '*' && type == 'LASTBIBLIOS'){
+            $('#value').val('item');
+            $('option:selected', 'select[name="value"]').removeAttr('selected');
+            $('select[name="value"]').find('option[value="item"]').attr("selected",true);
+        }
+
+        if (branchcode == '*') {
+            $('#itemInfo').prop('checked', false);
+            $('.itemInfo').addClass('hidden');
+        } else {
+            $('.itemInfo').removeClass('hidden');
+        }
+    });
+
+    $('#type').change(function() {
+        var branchcode = $('#branchcode').val();
+        var type = $('#type').val();
+
+        if(branchcode != '*' && type == 'LASTBIBLIOS'){
+            $('#value').val('item');
+            $('option:selected', 'select[name="value"]').removeAttr('selected');
+            $('select[name="value"]').find('option[value="item"]').attr("selected",true);
+        } else {
+            $('#value').val('');
+        }
+    });
+
+
+    /*Controlamos que el número de items por boletín sea mayor o igual que el de items por carrusel*/
+    $('#elementsInCarousel').change(function() {
+
+        var elementsInCarousel = $('#elementsInCarousel').val();
+        var elementsInBulletin = $('#elementsInBulletin').val();
+        elementsInCarousel = parseInt(elementsInCarousel);
+        elementsInBulletin = parseInt(elementsInBulletin);
+
+        if(elementsInBulletin !== null && elementsInBulletin !== '') {
+            if (elementsInCarousel > elementsInBulletin) {
+                alert(_("Elements in carousel must be lower than ")+elementsInBulletin);
+                return false;
+            }
+        }
+    });
+
+    $('#elementsInBulletin').change(function() {
+        var elementsInCarousel = $('#elementsInCarousel').val();
+        var elementsInBulletin = $('#elementsInBulletin').val();
+        elementsInCarousel = parseInt(elementsInCarousel);
+        elementsInBulletin = parseInt(elementsInBulletin);
+
+        if(elementsInCarousel !== null && elementsInCarousel !== '') {
+            if (elementsInCarousel > elementsInBulletin) {
+                alert(_("Elements in bulletin must be higher than ")+elementsInCarousel);
+                return false;
+            }
+        }
+    });
+
+    $("#addcarousel").submit(function(){
+        var elementsInCarousel = $('#elementsInCarousel').val();
+        var elementsInBulletin = $('#elementsInBulletin').val();
+        elementsInCarousel = parseInt(elementsInCarousel);
+        elementsInBulletin = parseInt(elementsInBulletin);
+
+        if (elementsInCarousel > elementsInBulletin) {
+            alert(_("Elements in bulletin") +" ("+elementsInBulletin+")"+_(" must be higher than Elements in carousel")+ "("+elementsInCarousel+")");
+            return false;
+        }
+
+        /* Comprobamos que la url sea una búsqueda en nuestro catálogo */
+        var type = $('#type').val();
+
+        if (type == 'SEARCH') 
+        {
+            var opacBaseURL = '[% Koha.Preference('OpacBaseURL') | url %]';
+            var url = $('#value').val();
+
+            if ( url.indexOf(opacBaseURL) == -1 ) {
+                alert(_("The url must be a search in this catalogue ")+opacBaseURL);
+                    return false;
+            }
+            
+        }
+
+        var branchcode = $('#branchcode').val();
+
+        if (branchcode == '*') {
+            $('#itemInfo').prop('checked', false);
+            $('.itemInfo').addClass('hidden');
+        } else {
+            $('.itemInfo').removeClass('hidden');
+        }
+    });
+</script>
+[% END %]
+
+<!-- Footer-->
+[% INCLUDE 'intranet-bottom.inc' %]

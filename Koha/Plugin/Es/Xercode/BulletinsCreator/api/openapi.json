@@ -1,0 +1,65 @@
+{
+    "/bulletins/{bulletins_branch}": {
+      "get": {
+        "x-mojo-to": "Es::Xercode::BulletinsCreator::api::Controller#get_all_bulletins_branch",
+        "operationId": "GetAllBulletins",
+        "parameters": [
+          {
+            "description": "Bulletin's library",
+            "in": "path",
+            "name": "bulletins_branch",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "A report HTML"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "x-koha-authorization": {
+            "permissions": {
+                "borrowers": "1"
+            }
+        }
+      }
+    },
+    "/bulletin/{bulletin_id}": {
+      "get": {
+        "x-mojo-to": "Es::Xercode::BulletinsCreator::api::Controller#get_bulletin_id",
+        "operationId": "GetIdBulletin",
+        "parameters": [
+          {
+            "description": "bulletin from id",
+            "in": "path",
+            "name": "bulletin_id",
+            "required": true,
+            "type": "integer"
+          }
+        ],
+        "produces": [
+          "text/html"
+        ],
+        "responses": {
+          "200": {
+            "description": "A report HTML"
+          },
+          "500": {
+            "description": "Internal server error"
+          }
+        },
+        "x-koha-authorization": {
+            "permissions": {
+                "borrowers": "1"
+            }
+        }
+      }
+    }
+}
+  

@@ -1,0 +1,147 @@
+[% USE raw %]
+[% USE Asset %]
+[% USE Dumper %]
+[% SET footerjs = 1 %]
+[% INCLUDE 'doc-head-open.inc' %]
+ <title>Bulletins Creator: Configuration</title> 
+
+[% INCLUDE 'doc-head-close.inc' %]
+
+<link rel='stylesheet' type='text/css' href='[%PLUGIN_PATH%]/css/common.css'>
+<link rel='stylesheet' type='text/css' href='[%PLUGIN_PATH%]/css/jquery.dataTables.min.css'>
+
+[% Asset.css("lib/codemirror/codemirror.css") | $raw %]
+
+<style>
+    .size {
+        margin-left: 10.5px;
+    }
+    input#Routes {
+        margin-right: 5px;
+        margin-left: 12px;
+    }
+</style>
+        
+<body>
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Bulletins Creator &rsaquo; Configuration</div>
+
+<div class="main container-fluid">
+<div class="row">
+        <div class="col-md-10 col-sm-push-1">
+            <main>
+			    <h1>Update settings</h1>
+			    <form method="post" name="bulletins_configuration_form">
+                    <fieldset class="rows">
+                        <legend>Bulletin settings</legend>
+                        <ol>
+                            [% FOREACH setting IN settings %]
+                                <li>
+                                    [% IF  (setting.key != 'AuthorTruncate' && setting.key != 'TitleTruncate' && setting.key != 'AbstractTruncate') %]
+                                        <label class="required">[% setting.name | html %]</label>
+                                        [% IF  (setting.type == 'input') %]
+                                            [% IF  (setting.key == 'Routes') %]
+                                                [% IF  (setting.value == 'CGI') %]
+                                                    <input type="radio" id="[% setting.key %]" name="[% setting.key %]" value="PLACK"/>PLACK
+                                                    <input type="radio" id="[% setting.key %]" name="[% setting.key %]" value="CGI" checked/>CGI
+                                                [% ELSE %]
+                                                    <input type="radio" id="[% setting.key %]" name="[% setting.key %]" value="PLACK" checked/>PLACK
+                                                    <input type="radio" id="[% setting.key %]" name="[% setting.key %]" value="CGI"/>CGI
+                                                [% END %]
+                                                <span class="required">Required</span>
+                                            [% ELSE %]
+                                                <input type="text" id="[% setting.key %]" name="[% setting.key %]" value="[% setting.value | html %]" size="50" class="required" required="required" />
+                                                <span class="required">Required</span>
+                                            [% END %]
+                                        [% ELSE %]
+                                            <div style="margin:1em;">
+                                                <textarea class="sqleditor" name="[% setting.key %]" id="[% setting.key %]" rows="20" cols="90">[% setting.value | html %]</textarea>
+                                            </div>
+                                            <span class="required">Required</span>
+                                        [% END %]
+                                    [% END %]
+                                </li>
+                            [% END %]
+                            [% PROCESS truncate_info %]
+                            <p>
+                                [% FOREACH setting IN settings %]
+                                    [% IF  (setting.key == 'AuthorTruncate' || setting.key == 'TitleTruncate' || setting.key == 'AbstractTruncate') %]
+                                        <li>
+                                            <h4>[% setting.name %]</h4>
+                                            <label>Size</label>
+                                            [% IF  (setting.key == 'AuthorTruncate') %]
+                                                [% FOREACH value IN author %]
+                                                    <input class="size" type="text" id="AuthorSize" name="AuthorSize" value=[% value.size %] size="30"/> 
+                                                [% END %]
+                                            [% ELSIF  (setting.key == 'TitleTruncate') %]
+                                                [% FOREACH value IN title %]
+                                                    <input class="size" type="text" id="TitleSize" name="TitleSize" value=[% value.size %] size="30"/> 
+                                                [% END %]
+                                            [% ELSIF  (setting.key == 'AbstractTruncate') %]
+                                                [% FOREACH value IN abstract %]
+                                                    <input class="size" type="text" id="AbstractSize" name="AbstractSize" value=[% value.size %] size="30"/> 
+                                                [% END %]
+                                            [% END %]
+                                            <p>
+                                                <label>Marker</label> 
+                                                [% IF  (setting.key == 'AuthorTruncate') %]
+                                                    [% FOREACH value IN author %]
+                                                        <input type="text" id="AuthorMarker" name="AuthorMarker" value=[% value.marker %] size="30"/> 
+                                                    [% END %]
+                                                [% ELSIF  (setting.key == 'TitleTruncate') %]
+                                                    [% FOREACH value IN title %]
+                                                        <input type="text" id="TitleMarker" name="TitleMarker" value=[% value.marker %] size="30"/> 
+                                                    [% END %]
+                                                [% ELSIF  (setting.key == 'AbstractTruncate') %]
+                                                    [% FOREACH value IN abstract %]
+                                                        <input type="text" id="AbstractMarker" name="AbstractMarker" value=[% value.marker %] size="30"/> 
+                                                    [% END %]
+                                                [% END %]
+                                            </p>
+                                        </li>
+                                    [% END %]
+                                [% END %]
+                            </p>
+                        </ol>
+                    </fieldset>
+                    <fieldset class="action">
+                        <input type="hidden" name="op" value="update"/>
+                        <button id="submit" type="submit" name="submit" class="btn btn-default"><i class="fa fa-save"></i> Update</button>
+                        <a href="/cgi-bin/koha/plugins/plugins-home.pl" class="cancel btn btn-default"><i class="fa fa-times"></i> Cancel</a>
+                        <input type="hidden" name="class" value="[% CLASS %]"/>
+                        <input type="hidden" name="method" value="[% METHOD %]"/>
+                    </fieldset>
+				</form>
+            </main>
+        </div>
+     </div>
+</div>
+
+[% codemirror %]
+
+[% MACRO jsinclude BLOCK %]
+    [% Asset.js( "lib/codemirror/sql.min.js" ) | $raw %]
+    <script>
+        $(document).ready(function(){
+            $('.sqleditor').each( function(i, e){
+                var editor = CodeMirror.fromTextArea(e, {
+                    lineNumbers: true,
+                    mode: "text/x-sql",
+                    lineWrapping: true
+                });
+            });
+        });
+    </script>
+[% END %]
+        
+[% INCLUDE 'intranet-bottom.inc' %]
+
+[% BLOCK truncate_info %]
+    <hr>
+        <p><br>
+        <h3>Data truncate</h3>
+        <span>Select the number of characters from which the text will be truncated.</span>
+        <br><span>Example truncating to <u>size</u> 45 characters with <u>marker</u> '...': <i>Lorem ipsum dolor sit amet, consectetur adipi...</i></span>
+    </p>
+[% END %]

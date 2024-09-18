@@ -1,0 +1,225 @@
+[% USE raw %]
+[% USE Koha %]
+[% USE Branches %]
+[% USE AuthorisedValues %]
+[% USE Dumper %]
+[% INCLUDE 'doc-head-open.inc' %]
+<title>[% IF ( LibraryNameTitle ) %][% LibraryNameTitle | html %][% ELSE %]Koha online[% END %] catálogo</title>
+[% INCLUDE 'doc-head-close.inc' %]
+
+[% BLOCK cssinclude %][% END %]
+
+</head>
+[% INCLUDE 'bodytag.inc' bodyid='opac-bulletin' %]
+[% INCLUDE 'masthead.inc' %]
+
+<div class="main">
+    <ul class="breadcrumb">
+        <li><a href="/cgi-bin/koha/opac-main.pl">Inicio</a> <span class="divider">&rsaquo;&nbsp;</span></li>
+        [% IF (bulletinID) %]<li><a href="#"><span> Boletín: </span>[% bulletinName | html %] en [% branchName | html %]</a></li>[% END %]
+    </ul>
+    <div class="container-fluid">
+        <div class="row-fluid">
+            <div class="span12">
+                <div class="row-fluid">
+                    [% IF (bulletinID) %]
+
+                        [% IF (otherlibraries) %]
+                            <div id="bulletin-otherlibraries">
+                                <label for="otherlibraries">Seleccione boletins de este tipo de outras bibliotecas:</label>
+                                <select name="otherlibraries" id="otherlibraries">
+                                    <option value="">Seleccione biblioteca</option>
+                                    [% FOREACH ol IN otherlibraries %]
+                                        <option value="[% ol.idBulletin %]">[% IF (ol.branchname != "*") %][% ol.branchname | html %][% ELSE %][% Koha.Preference('LibraryName') %][% END %] - [% ol.bulletinName %]</option>
+                                    [% END %]
+                                </select>
+                            </div>
+                        [% END %]
+                        <h2>
+                            [% bulletinName | html %] en [% branchName | html %]
+                        </h2>
+                        <div id="bulletin-description">
+                            [% bulletinDescription | html %]
+                        </div>
+    
+                        <div id="bulletin-toolbar">
+                            [% IF (route_type == 'CGI') %]
+                                <form id="bulletin-subscription" name="bulletin-subscription" action="/cgi-bin/koha/opac-bulletin.pl" method="post">      
+                            [% ELSE %]
+                                <form id="bulletin-subscription" name="bulletin-subscription" action="/bulletins/opac-bulletin.pl" method="post">
+                            [% END %]
+                                <span id="filtersApplied" class="pull-left"></span>
+                                <input type="hidden" id="bulletincontents" value='[% bulletin || '[{}]' %]'/>
+                                <input type="hidden" id="userfilters" name="userfilters" data-defaultview='[% bulletinDefaultView %]' value='[% fixedJSON %]'/>
+                                <input type="hidden" name="id" value='[% bulletinID %]'/>
+
+                                [% IF (sizeau) %]
+                                    <input type="hidden" id="sizeau" name="sizeau" value='[% sizeau %]'/>
+                                [% END %]
+                                [% IF (sizeti) %]
+                                    <input type="hidden" id="sizeti" name="sizeti" value='[% sizeti %]'/>
+                                [% END %]
+                                [% IF (sizeab) %]
+                                    <input type="hidden" id="sizeab" name="sizeab" value='[% sizeab %]'/>
+                                [% END %]
+                                [% IF (markerau) %]
+                                    <input type="hidden" id="markerau" name="markerau" value='[% markerau %]'/>
+                                [% END %]
+                                [% IF (markerti) %]
+                                    <input type="hidden" id="markerti" name="markerti" value='[% markerti %]'/>
+                                [% END %]
+                                [% IF (markerab) %]
+                                    <input type="hidden" id="markerab" name="markerab" value='[% markerab %]'/>
+                                [% END %]
+
+                                <input type="hidden" name="periodicity" id="periodicity" value=""/>
+                                <input type="hidden" name="receiveonlyupdates" id="receiveonlyupdates" value=""/>
+                                <input type="hidden" id="route_type" name="route_type" value='[% route_type %]'/>
+                                
+                                [% IF (route_type == 'CGI') %]
+                                    <a href="/cgi-bin/koha/opac-bulletin.pl?id=[% bulletinID %]&export=rtf" id="btn-bulletin-export-rtf" target="_blank"><i class="fa fa-file-word-o"></i> Exportar en RTF</a>
+                                    <a href="/cgi-bin/koha/opac-bulletin.pl?id=[% bulletinID %]&export=html" id="btn-bulletin-export-html" target="_blank"><i class="fa fa-file-code-o"></i> Exportar en HTML</a>             
+                                [% ELSE %]
+                                    <a href="/bulletins/opac-bulletin.pl?id=[% bulletinID %]&export=rtf" id="btn-bulletin-export-rtf" target="_blank"><i class="fa fa-file-word-o"></i> Exportar en RTF</a>
+                                    <a href="/bulletins/opac-bulletin.pl?id=[% bulletinID %]&export=html" id="btn-bulletin-export-html" target="_blank"><i class="fa fa-file-code-o"></i> Exportar en HTML</a>  
+                                [% END %]
+
+                                <a href="#" id="btn-bulletin-filter" data-toggle="modal" data-target="#bulletinmodalfilters"><i class="fa fa-filter"></i> Filtrar resultados</a>
+                                <a href="#" id="btn-bulletin-list" class="hidden"><i class="fa fa-th"></i> <i class="fa fa-list"></i></a>
+                                <a href="#" id="btn-bulletin-grid" class="hidden"><i class="fa fa-th"></i> <i class="fa fa-list"></i></a>
+                            </form>
+                        </div>
+                        
+                        <div id="bulletin">
+                            
+                        </div>
+                    [% ELSE %]
+                        [% IF (nopermission && loggedinusername) %]
+                            <div class="alert alert-error text-center">Vostede non ten permiso para acceder a este boletín</div>
+                        [% END %]
+
+                        [% IF (nobulletin) %]
+                            <div class="alert alert-error text-center">Este boletín non existe</div>
+                        [% END %]
+
+                        [% IF ( !loggedinusername && !nobulletin ) %]
+                            <div class="alert alert-error text-center">
+                                <span>
+                                    [% IF Koha.Preference('casAuthentication') %]
+                                        [%# CAS authentication is too complicated for modal window %]
+                                        Para ver o boletín, <a href="/cgi-bin/koha/opac-user.pl">introduza as suas credenciais</a> e vai á páxina de inicio
+                                    [% ELSE %]
+                                        Para ver o boletín, <a class="loginModal-trigger" data-toggle="modal" role="button" href="/cgi-bin/koha/opac-user.pl">introduza as suas credenciais</a> e vai á páxina de inicio
+                                    [% END %]
+                                </span>
+                            </div>
+                        [% END %]
+
+                    [% END %]
+                </div> <!-- /.row-fluid -->
+            </div> <!-- /.span12 -->
+        </div> <!-- /.container-fluid -->
+    </div> <!-- /.row-fluid -->
+</div> <!-- /.main -->
+
+<div class="modal fade large hidden" id="bulletinmodalfilters" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Filtros de boletins</h5>
+            </div>
+            <div class="modal-body">
+                <div class="modal-body-filters">
+
+                    <div class="filter filter-format">
+                        <div class="filter-head">
+                            Formatos
+                        </div>
+                        <div class="filter-contents">
+                            <div>
+                                <label for="filter-format-any" class="radiocontainer"> Calquera
+                                    <input type="radio" name="filter-format" id="filter-format-any" value="" checked="checked">
+                                    <span class="radiocheckmark"></span>
+                                </label>
+                            </div>
+                            [% FOREACH ff IN formatfilters %]
+                                <div>
+                                    <label for="filter-format-[% ff %]" class="radiocontainer"> [% AuthorisedValues.GetByCode( 'FORMAT', ff ) | html %]
+                                        <input type="radio" name="filter-format" id="filter-format-[% ff %]" value="[% ff %]">
+                                        <span class="radiocheckmark"></span>
+                                    </label>
+                                </div>
+                            [% END %]
+                        </div>
+                    </div>
+
+                    <div class="filter filter-language">
+                        <div class="filter-head">
+                            Idioma
+                        </div>
+                        <div class="filter-contents">
+                            <div>
+                                <label for="filter-language-any" class="radiocontainer"> Calquera
+                                    <input type="radio" name="filter-language" id="filter-language-any" value="" checked="checked">
+                                    <span class="radiocheckmark"></span>
+                                </label>
+                            </div>
+                            [% FOREACH lf IN languagefilters %]
+                                <div>
+                                    <label for="filter-language-[% lf %]" class="radiocontainer"> [% AuthorisedValues.GetByCode( 'LANG', lf ) | html %]
+                                        <input type="radio" name="filter-language" id="filter-language-[% lf %]" value="[% lf %]">
+                                        <span class="radiocheckmark"></span>
+                                    </label>
+                                </div>
+                            [% END %]
+                        </div>
+                    </div>
+
+                    <div class="filter filter-year">
+                        <div class="filter-head">
+                            Ano
+                        </div>
+                        <div class="filter-contents">
+                            <div>
+                                <label for="filter-year-any" class="radiocontainer"> Calquera
+                                    <input type="radio" name="filter-year" id="filter-year-any" value="" checked="checked">
+                                    <span class="radiocheckmark"></span>
+                                </label>
+                            </div>
+                            [% FOREACH yf IN yearfilters %]
+                                <div>
+                                    <label for="filter-year-[% yf %]" class="radiocontainer"> [% yf %]
+                                        <input type="radio" name="filter-year" id="filter-year-[% yf %]" value="[% yf %]">
+                                        <span class="radiocheckmark"></span>
+                                    </label>
+                                </div>
+                            [% END %]
+                        </div>
+                    </div>
+
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                <button type="button" id="btn-filter-reset" class="btn btn-primary">Restablecer todo</button>
+                <button type="button" id="btn-filter-apply" class="btn btn-primary">Aplicar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+[% INCLUDE 'opac-bottom.inc' %]
+
+[% BLOCK jsinclude %]
+    <script>
+        var MSG_BULLETIN_NO_CONTENTS = _("Non se atoparon items cos filtros seleccionados");
+        var MSG_BY = 'Por';
+        [% FOREACH a IN AuthorisedValues.Get( 'FORMAT' ) %]
+            var MSG_FORMAT_[% a.authorised_value | html %] = "[% a.lib_opac | html %]";
+        [% END %]
+        [% FOREACH a IN AuthorisedValues.Get( 'LANG' ) %]
+            var MSG_LANGUAGE_[% a.authorised_value.replace('-','') | html %] = "[% a.lib_opac | html %]";
+        [% END %]
+    </script>
+[% END %]

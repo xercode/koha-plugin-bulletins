@@ -1,0 +1,390 @@
+/*********************************/
+#btn-bulletin-grid.hidden {
+    display: none;
+    visibility: hidden;
+}
+#btn-bulletin-list.hidden {
+    display: none;
+    visibility: hidden;
+}
+.bulletin-card-grid .data .data-abstract {
+    display: none;
+    visibility: hidden;
+}
+/*******************************/
+
+#bulletin {
+    min-height: 300px;
+    margin-bottom: 30px;
+}
+
+#bulletin .row-fluid {
+    margin-bottom: 30px;
+}
+
+#bulletin-toolbar {
+    text-align: right;
+    padding-right: 23px;
+    line-height: 53px;
+    background-color: #f7f7f7;
+    padding-top: 7px;
+    margin-bottom: 17px;
+    border-radius: 2px;
+}
+
+#bulletin-toolbar > a {
+    margin-left: 10px;
+}
+
+#bulletin-toolbar > a > i {
+    font-size: 1.5em;
+    color: #000000;
+}
+
+#btn-bulletin-list, #btn-bulletin-grid, #btn-bulletin-filter, #btn-bulletin-subscription-add, #btn-bulletin-subscription-del, #btn-bulletin-login, #btn-bulletin-export-rtf, #btn-bulletin-export-html {
+    border: 1px solid gray;
+    padding: 9px 17px 3px 17px;
+    border-radius: 4px;
+    text-decoration: none;
+}
+
+#btn-bulletin-list i.fa-th {
+    color: black;
+    padding-right: 20px;
+}
+
+#btn-bulletin-list:hover i.fa-th {
+    color: #0165ac;
+}
+
+#btn-bulletin-list i.fa-list {
+    color: #a6a6a6;
+}
+
+#btn-bulletin-grid i.fa-list {
+    color: black;
+    padding-left: 20px;
+}
+
+#btn-bulletin-grid:hover i.fa-list {
+    color: #0165ac;
+}
+
+#btn-bulletin-grid i.fa-th {
+    color: #a6a6a6;
+}
+
+#btn-bulletin-filter:hover i {
+    color: #0165ac;
+}
+
+#filtersApplied span {
+    margin-right: 15px;
+    cursor: pointer;
+}
+
+#filtersApplied .data-filter-applied {
+    border: 1px solid #83a279;
+    border-radius: 16px;
+    padding: 6px;
+}
+
+#btn-bulletin-subscription-add:hover i, #btn-bulletin-subscription-del:hover i {
+    color: #0165ac;
+}
+
+.tns-controls button {
+    border: 1px solid transparent;
+}
+
+/* ==============================
+   Grid view
+   ============================== */
+.bulletin-cards-grid {
+    max-width: 1300px;
+    margin: 0 auto;
+    display: grid;
+    grid-gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+}
+
+.bulletin-card-grid {
+    margin-top: 5px;
+    margin-bottom: 5px;
+    background-color: whitesmoke;
+    color: black;
+    height: 490px;
+    width: 275px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.bulletin-card-grid:hover {
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+}
+
+.bulletin-card-grid .thumb {
+    height: 400px;
+    overflow: hidden;
+}
+
+.bulletin-card-grid .thumb img {
+    width: 100%;
+    display: block;
+    margin-left: auto;
+    margin-right: auto;     
+}
+
+.bulletin-card-grid .data {
+    padding: 6px 0px 0px 9px;
+    display: block;
+}
+
+.bulletin-card-grid .data .data-title {
+    color: #0165ac;
+    font-weight: bold;
+    overflow: hidden;
+    font-size: 0.9em;
+}
+
+.bulletin-card-grid .data-title, .bulletin-card-grid .data-author, .bulletin-card-grid .data-format {
+    font-size: 0.8em;
+}
+
+.carousel-data-title, .carousel-data-author, .carousel-data-format {
+    font-size: 0.8em;
+}
+
+.bulletin-card-grid .data .data-format span {
+    margin-left: 10px;
+}
+
+.bulletin-card-grid .data .data-format{
+    margin-top: 10px;
+}
+
+/* ==============================
+   List view
+   ============================== */
+.bulletin-cards-list{
+    max-width: 1050px;
+    margin: 0 auto;
+    display: grid;
+    grid-gap: 1rem;
+}
+
+.bulletin-card-list {
+    background-color: whitesmoke;
+    color: black;
+    padding: 0px 0px 0px 0px;
+    height: 260px;
+    width: 100%;
+    margin-top: 5px;
+    margin-bottom: 5px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+    transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+}
+
+.bulletin-card-list:hover {
+    box-shadow: 0 14px 28px rgba(0,0,0,0.25), 0 10px 10px rgba(0,0,0,0.22);
+}
+
+.bulletin-card-list .thumb {
+    height: 100%;
+    width: 179px;
+    overflow: hidden;
+    float: left;
+    margin-right: 17px;
+}
+
+.bulletin-card-list .thumb img {
+    width: 100%;
+}
+
+.bulletin-card-list .data .data-title {
+    font-size: 1.8em;
+    color: #0165ac;
+    /*margin-bottom: 15px;*/
+    line-height: 28px;
+    padding-top: 9px;
+}
+
+.bulletin-card-list .data .data-author {
+    /*margin-bottom: 9px;*/
+}
+
+.bulletin-card-list .data .data-format span {
+    margin-left: 10px;
+}
+
+.bulletin-card-list .data .data-abstract {
+    margin-top: 19px;
+    font-style: italic;
+}
+
+/* ==============================
+   Modal filters
+   ============================== */
+
+@media screen and (min-width: 768px) {
+    .modal.large {
+        width: 80%; /* respsonsive width */
+        /*margin-left:-40%; /* width/2) */
+    }
+}
+
+.modal-body-filters {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: grid;
+    grid-gap: 0.5rem;
+    grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+}
+
+.modal-body-filters .filter {
+    background-color: #737068;
+    color: white;
+    padding: 1rem;
+    border-radius: 3px;
+}
+
+.modal-body-filters .filter-head {
+    background: #4a4343;
+    line-height: 34px;
+    padding-left: 13px;
+    border-radius: 3px;
+}
+
+.modal-body-filters .filter-contents {
+    margin-top: 12px;
+}
+
+.modal-body-filters .filter-contents > div:not(:first-child) {
+    margin-top: 5px;
+}
+
+/* radio buttons */
+
+/* The container */
+.modal-body-filters .radiocontainer {
+    display: block;
+    position: relative;
+    padding-left: 35px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-size: 14px;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+/* Hide the browser's default radio button */
+.modal-body-filters .radiocontainer input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+}
+
+/* Create a custom radio button */
+.modal-body-filters .radiocheckmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 25px;
+    width: 25px;
+    background-color: #eee;
+    border-radius: 50%;
+}
+
+/* On mouse-over, add a grey background color */
+.modal-body-filters .radiocontainer:hover input ~ .radiocheckmark {
+    background-color: #ccc;
+}
+
+/* When the radio button is checked, add a blue background */
+.modal-body-filters .radiocontainer input:checked ~ .radiocheckmark {
+    background-color: #2196F3;
+}
+
+/* Create the indicator (the dot/circle - hidden when not checked) */
+.modal-body-filters .radiocheckmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+/* Show the indicator (dot/circle) when checked */
+.modal-body-filters .radiocontainer input:checked ~ .radiocheckmark:after {
+    display: block;
+}
+
+/* Style the indicator (dot/circle) */
+.modal-body-filters .radiocontainer .radiocheckmark:after {
+    top: 9px;
+    left: 9px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: white;
+}
+
+/* ==============================
+   Page loader
+   ============================== */
+
+.page-loader{
+    display:block;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    background: transparent;
+    z-index: 100;
+    padding: 25px;
+}
+
+.loader{
+    width: 50px;
+    height: 50px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin: 50px 0 0 -25px;
+    font-size: 10px;
+    text-indent: -12345px;
+    border-top: 1px solid rgba(27, 27, 27, 0.37);
+    border-right: 1px solid rgba(0, 0, 0, 0.84);
+    border-bottom: 1px solid rgba(2, 1, 1, 0.43);
+    border-left: 1px solid rgba(0, 0, 0, 0.8);
+    -webkit-border-radius: 50%;
+    -moz-border-radius: 50%;
+    border-radius: 50%;
+    -webkit-animation:  spin 700ms linear infinite;
+    -moz-animation:  spin 700ms linear infinite;
+    -ms-animation:  spin 700ms linear infinite;
+    -o-animation:  spin 700ms linear infinite;
+    animation: spin 700ms linear infinite;
+    z-index: 100001;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+@media only screen and (max-width: 600px) {
+    #filtersApplied {
+        display: block;
+        width: 100%;
+    }
+}
+
+select#otherlibraries{
+    width:500px;
+}
+
+#opac-main .tns-outer{
+    height:500px;
+}
